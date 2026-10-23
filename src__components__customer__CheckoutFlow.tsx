@@ -16,13 +16,13 @@ import {
   Banknote,
   Clock,
 } from 'lucide-react';
-import { StorageService } from './src__services__storage';
+import { StorageService } from '../../services/storage';
 import {
   calculateMaxRedemption,
   validateCoinRedemption,
   processCoinDeduction,
   calculateRewardCoins,
-} from './src__services__rewardsEngine';
+} from '../../services/rewardsEngine';
 import {
   User,
   Address,
@@ -31,7 +31,7 @@ import {
   Order,
   PaymentMethod,
   B5CoinAccount,
-} from './src__types__index';
+} from '../../types';
 
 interface CheckoutFlowProps {
   coupon?: Coupon;

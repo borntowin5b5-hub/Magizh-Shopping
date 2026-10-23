@@ -12,8 +12,8 @@ import {
   XCircle,
   FileSpreadsheet,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { Order, Product, PartnerShop } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { Order, Product, PartnerShop } from '../../types';
 
 export const SalesDashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>(StorageService.getOrders());

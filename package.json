@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "start": "node server__server.js",
-    "server": "node server__server.js",
+    "start": "node server/server.js",
+    "server": "node restore-structure.js && node server/server.js",
     "preview": "vite preview",
     "test": "node test-suite-full.js",
-    "test:full": "node test-suite-full.js"
+    "test:full": "node test-suite-full.js",
+    "prebuild": "node restore-structure.js",
+    "prestart": "node restore-structure.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",

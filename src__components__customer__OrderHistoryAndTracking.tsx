@@ -13,12 +13,12 @@ import {
   XCircle,
   ExternalLink,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
+import { StorageService, subscribe } from '../../services/storage';
 import {
   creditOrderCompletionReward,
   processOrderCancellationReversal,
-} from './src__services__rewardsEngine';
-import { Order, OrderStatus, User } from './src__types__index';
+} from '../../services/rewardsEngine';
+import { Order, OrderStatus, User } from '../../types';
 
 interface OrderHistoryAndTrackingProps {
   onContinueShopping: () => void;

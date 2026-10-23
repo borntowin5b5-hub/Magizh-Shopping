@@ -4,14 +4,14 @@
  * Covers Section G Requirements 1 through 20
  */
 
-import { initDatabase, dbService, persistDatabase } from './server__db.js';
+import { initDatabase, dbService, persistDatabase } from './server/db.js';
 import {
   hashPassword,
   verifyPassword,
   generateOtp,
   hashOtp,
   verifyOtp,
-} from './server__security.js';
+} from './server/security.js';
 import fs from 'node:fs';
 import path from 'node:path';
 

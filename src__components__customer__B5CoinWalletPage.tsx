@@ -14,8 +14,8 @@ import {
   HelpCircle,
   Calendar,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { B5CoinAccount, B5Transaction, CoinRuleConfig, User } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { B5CoinAccount, B5Transaction, CoinRuleConfig, User } from '../../types';
 
 interface B5CoinWalletPageProps {
   onStartShopping: () => void;

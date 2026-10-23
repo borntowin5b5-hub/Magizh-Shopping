@@ -43,7 +43,7 @@ git push -u origin main
      ```bash
      npm start
      ```
-     *(or `node server__server.js`)*
+     *(or `node server/server.js`)*
 
 ### Step 3: Configure Environment Variables
 Under the **Environment** tab on Render, add the following key-value pairs:
@@ -75,8 +75,11 @@ If you are using SQLite:
 Once the deployment finishes:
 1. Check the health endpoint: `https://your-service-name.onrender.com/api/health`
    - Expect: `{"status":"healthy","service":"Magizh Shopping & B5 Coin Ecosystem Backend","database":"connected","version":"1.0.0"}`
-2. Open `https://your-service-name.onrender.com` in your browser or mobile phone:
-   - Verify customer home page loads with 2-column mobile layout.
-   - Test OTP password reset in demo mode.
-   - Navigate to Partner Shops directory.
-   - Open Admin Hub and click **Run 20-Point Spec Tests** to verify 20/20 pass in the production environment.
+2. Verify all four dedicated routes directly in the browser (supports direct URL navigation and browser refresh):
+   - **Customer Storefront (`/`)**: 2-column mobile layout, product catalog, cart, checkout with 50% B5 Coin cap.
+   - **Partner Portal (`/partner`)**: Franchise Partner Shop login and in-store QR/PIN redemption dashboard.
+   - **Referral Leader Hub (`/referral`)**: Multi-level team genealogy and sales earnings dashboard.
+   - **Admin Management Portal (`/admin`)**: Protected by server-side bearer token authentication (`admin@magizh.com` / `admin123`) for product catalog CRUD, categories, banners, and audit logs.
+3. Verify server-side security:
+   - Direct API calls to mutate catalog (`POST /api/products`, `PUT /api/products/:id`) without an admin token are rejected with HTTP 401/403.
+   - Ordinary customers and partner accounts cannot access the admin management portal or administrative API endpoints.

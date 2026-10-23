@@ -2,16 +2,17 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { initDatabase } from './server__db.js';
-import { apiRouter } from './server__api.js';
+import { initDatabase } from './db.js';
+import { apiRouter } from './api.js';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DIST_DIR = path.join(__dirname, 'dist');
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,12 +37,19 @@ app.get(['/health', '/api/health'], (req, res) => {
 // Mount API router
 app.use('/api', apiRouter);
 
-// Serve frontend in production
-if (process.env.NODE_ENV === 'production') {
+// Serve frontend in production or when dist directory exists
+if (process.env.NODE_ENV === 'production' || fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));
-  app.get('/{*path}', (req, res) => {
-  res.sendFile(path.join(DIST_DIR, 'index.html'));
-});
+  
+  const serveIndex = (req, res) => {
+    res.sendFile('index.html', { root: DIST_DIR });
+  };
+
+  app.get('/', serveIndex);
+  app.get('/partner', serveIndex);
+  app.get('/referral', serveIndex);
+  app.get('/admin', serveIndex);
+  app.get('{*path}', serveIndex);
 }
 
 // Start Server

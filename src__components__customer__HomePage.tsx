@@ -16,8 +16,8 @@ import {
   Zap,
   Store,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { Product, ProductCategory, WeightVariant, CategoryInfo, PromotionalBanner } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { Product, ProductCategory, WeightVariant, CategoryInfo, PromotionalBanner } from '../../types';
 
 interface HomePageProps {
   onSelectProduct: (product: Product) => void;

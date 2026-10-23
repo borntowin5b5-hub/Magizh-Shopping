@@ -1,26 +1,86 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './src__components__common__Header';
-import { BottomNav } from './src__components__common__BottomNav';
-import { AuthModal } from './src__components__common__AuthModal';
-import { HomePage } from './src__components__customer__HomePage';
-import { ProductDetailModal } from './src__components__customer__ProductDetailModal';
-import { CartPage } from './src__components__customer__CartPage';
-import { CheckoutFlow } from './src__components__customer__CheckoutFlow';
-import { OrderHistoryAndTracking } from './src__components__customer__OrderHistoryAndTracking';
-import { B5CoinWalletPage } from './src__components__customer__B5CoinWalletPage';
-import { CustomerAccount } from './src__components__customer__CustomerAccount';
-import { PartnerDashboard } from './src__components__partner__PartnerDashboard';
-import { ReferralDashboard } from './src__components__referral__ReferralDashboard';
-import { SalesDashboard } from './src__components__sales__SalesDashboard';
-import { AdminPanel } from './src__components__admin__AdminPanel';
-import { PartnerShopsDirectory } from './src__components__customer__PartnerShopsDirectory';
-import { StorageService, subscribe } from './src__services__storage';
-import { Product, WeightVariant, Coupon, Order, User, ProductCategory } from './src__types__index';
-import { ShieldAlert, ArrowRight } from 'lucide-react';
+import { Header } from './components/common/Header';
+import { BottomNav } from './components/common/BottomNav';
+import { AuthModal } from './components/common/AuthModal';
+import { HomePage } from './components/customer/HomePage';
+import { ProductDetailModal } from './components/customer/ProductDetailModal';
+import { CartPage } from './components/customer/CartPage';
+import { CheckoutFlow } from './components/customer/CheckoutFlow';
+import { OrderHistoryAndTracking } from './components/customer/OrderHistoryAndTracking';
+import { B5CoinWalletPage } from './components/customer/B5CoinWalletPage';
+import { CustomerAccount } from './components/customer/CustomerAccount';
+import { PartnerDashboard } from './components/partner/PartnerDashboard';
+import { ReferralDashboard } from './components/referral/ReferralDashboard';
+import { SalesDashboard } from './components/sales/SalesDashboard';
+import { AdminPanel } from './components/admin/AdminPanel';
+import { PartnerShopsDirectory } from './components/customer/PartnerShopsDirectory';
+import { PartnerAuthGuard } from './components/common/PartnerAuthGuard';
+import { AdminAuthGuard } from './components/common/AdminAuthGuard';
+import { StorageService, subscribe } from './services/storage';
+import { Product, WeightVariant, Coupon, Order, User } from './types';
+import { Store, Shield, TrendingUp, Sparkles, Heart, ExternalLink } from 'lucide-react';
+
+// Path-to-Route Mapper
+export const getRouteFromPath = (pathname: string): string => {
+  const p = (pathname || '/').toLowerCase().trim();
+  if (p === '/admin' || p.startsWith('/admin/')) return 'admin';
+  if (p === '/partner' || p.startsWith('/partner/')) return 'partner';
+  if (p === '/referral' || p.startsWith('/referral/') || p === '/sales' || p.startsWith('/sales/')) return 'referral';
+  if (p === '/cart' || p.startsWith('/cart/')) return 'cart';
+  if (p === '/checkout' || p.startsWith('/checkout/')) return 'checkout';
+  if (p === '/orders' || p.startsWith('/orders/')) return 'orders';
+  if (p === '/wallet' || p.startsWith('/wallet/')) return 'wallet';
+  if (p === '/account' || p.startsWith('/account/')) return 'account';
+  if (p === '/partner-shops' || p.startsWith('/partner-shops/')) return 'partner-shops';
+  if (p === '/categories' || p.startsWith('/categories/')) return 'categories';
+  return 'home';
+};
+
+// Route-to-Path Mapper
+export const getPathFromRoute = (route: string): string => {
+  switch (route) {
+    case 'admin':
+    case 'admin-orders':
+    case 'test-suite':
+      return '/admin';
+    case 'partner':
+    case 'partner-orders':
+    case 'partner-inventory':
+      return '/partner';
+    case 'referral':
+    case 'sales':
+      return '/referral';
+    case 'cart':
+      return '/cart';
+    case 'checkout':
+      return '/checkout';
+    case 'orders':
+      return '/orders';
+    case 'wallet':
+      return '/wallet';
+    case 'account':
+      return '/account';
+    case 'partner-shops':
+      return '/partner-shops';
+    case 'categories':
+      return '/categories';
+    case 'home':
+    default:
+      return '/';
+  }
+};
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User>(StorageService.getCurrentUser());
-  const [currentTab, setCurrentTab] = useState<string>('home');
+  
+  // Initialize route directly from browser URL so refreshing opens the exact route
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return getRouteFromPath(window.location.pathname);
+    }
+    return 'home';
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [checkoutCoupon, setCheckoutCoupon] = useState<Coupon | undefined>(undefined);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -31,6 +91,27 @@ export default function App() {
     StorageService.getCoinAccount(currentUser.id).availableBalance
   );
 
+  // Sync tab navigation with browser history
+  const navigateTo = (tab: string) => {
+    setCurrentTab(tab);
+    const targetPath = getPathFromRoute(tab);
+    if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
+      window.history.pushState({ tab }, '', targetPath);
+    }
+  };
+
+  // Browser Back / Forward Button Listener
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getRouteFromPath(window.location.pathname);
+      setCurrentTab(route);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Sync storage subscriptions
   useEffect(() => {
     const unsubUser = subscribe('currentUserChanged', (u: User) => {
       setCurrentUser(u);
@@ -66,88 +147,68 @@ export default function App() {
   const handleBuyNow = (product: Product, variant: WeightVariant, quantity: number) => {
     handleAddToCart(product, variant, quantity);
     setSelectedProduct(null);
-    setCurrentTab('checkout');
+    navigateTo('checkout');
   };
 
   const handleProceedToCheckout = (coupon?: Coupon) => {
     setCheckoutCoupon(coupon);
-    setCurrentTab('checkout');
+    navigateTo('checkout');
   };
 
   const handleOrderSuccess = (order: Order) => {
-    setCurrentTab('orders');
+    navigateTo('orders');
   };
 
-  // Role Access Guard
+  // Render Page Content based on Route & Role Guard
   const renderContent = () => {
-    // Admin Guard
-    if (currentTab === 'admin' || currentTab === 'admin-orders') {
-      if (currentUser.role !== 'admin') {
-        return (
-          <div className="max-w-md mx-auto my-16 p-6 bg-white rounded-3xl border border-cream-300 text-center space-y-4 shadow-soft">
-            <ShieldAlert className="w-12 h-12 text-red-600 mx-auto" />
-            <h2 className="text-lg font-black text-darkbrown-900">Admin Authentication Required</h2>
-            <p className="text-xs text-gray-600">
-              You are currently viewing as <strong>{currentUser.name}</strong> ({currentUser.role}).
-              Switch to the Admin persona to access root catalog, ledger, and rules.
-            </p>
-            <button
-              onClick={() => {
-                const adminUser = StorageService.switchRole('admin');
-                setCurrentUser(adminUser);
-              }}
-              className="px-5 py-2.5 bg-red-900 text-white rounded-xl text-xs font-bold shadow-md hover:bg-red-950 transition-all"
-            >
-              Switch to Admin Persona
-            </button>
-          </div>
-        );
-      }
-      return <AdminPanel />;
+    // 4. /admin — Admin Login and Administration Dashboard
+    if (currentTab === 'admin' || currentTab === 'admin-orders' || currentTab === 'test-suite') {
+      return (
+        <AdminAuthGuard
+          currentUser={currentUser}
+          onLoginSuccess={(adminUser) => {
+            setCurrentUser(adminUser);
+            setCoinBalance(StorageService.getCoinAccount(adminUser.id).availableBalance);
+          }}
+          onNavigateStorefront={() => navigateTo('home')}
+        >
+          <AdminPanel />
+        </AdminAuthGuard>
+      );
     }
 
-    // Partner Guard
+    // 2. /partner — Partner Login and Partner Dashboard
     if (currentTab === 'partner' || currentTab === 'partner-orders' || currentTab === 'partner-inventory') {
-      if (currentUser.role !== 'partner' && currentUser.role !== 'admin') {
-        return (
-          <div className="max-w-md mx-auto my-16 p-6 bg-white rounded-3xl border border-cream-300 text-center space-y-4 shadow-soft">
-            <ShieldAlert className="w-12 h-12 text-blue-600 mx-auto" />
-            <h2 className="text-lg font-black text-darkbrown-900">Partner Shop Access</h2>
-            <p className="text-xs text-gray-600">
-              Dedicated area for authorized Magizh franchise partners and fulfillment hubs.
-            </p>
-            <button
-              onClick={() => {
-                const partnerUser = StorageService.switchRole('partner');
-                setCurrentUser(partnerUser);
-              }}
-              className="px-5 py-2.5 bg-blue-900 text-white rounded-xl text-xs font-bold shadow-md hover:bg-blue-950 transition-all"
-            >
-              Switch to Partner Persona
-            </button>
-          </div>
-        );
-      }
-      return <PartnerDashboard />;
+      return (
+        <PartnerAuthGuard
+          currentUser={currentUser}
+          onLoginSuccess={(partnerUser) => {
+            setCurrentUser(partnerUser);
+            setCoinBalance(StorageService.getCoinAccount(partnerUser.id).availableBalance);
+          }}
+          onNavigateStorefront={() => navigateTo('home')}
+        >
+          <PartnerDashboard />
+        </PartnerAuthGuard>
+      );
     }
 
-    // Sales Guard
-    if (currentTab === 'sales') {
-      return <SalesDashboard />;
+    // 3. /referral — Sales / Referral Leader Login and Dashboard
+    if (currentTab === 'referral' || currentTab === 'sales') {
+      return (
+        <div className="space-y-6">
+          <ReferralDashboard />
+        </div>
+      );
     }
 
-    // Direct Test Suite
-    if (currentTab === 'test-suite') {
-      return <AdminPanel />;
-    }
-
-    // Customer Views
+    // 1. / — Customer Shopping Website and Sub-Views
     switch (currentTab) {
       case 'cart':
         return (
           <CartPage
             onProceedToCheckout={handleProceedToCheckout}
-            onContinueShopping={() => setCurrentTab('home')}
+            onContinueShopping={() => navigateTo('home')}
           />
         );
       case 'checkout':
@@ -155,31 +216,29 @@ export default function App() {
           <CheckoutFlow
             coupon={checkoutCoupon}
             onOrderSuccess={handleOrderSuccess}
-            onCancel={() => setCurrentTab('cart')}
+            onCancel={() => navigateTo('cart')}
           />
         );
       case 'orders':
-        return <OrderHistoryAndTracking onContinueShopping={() => setCurrentTab('home')} />;
+        return <OrderHistoryAndTracking onContinueShopping={() => navigateTo('home')} />;
       case 'wallet':
         return (
           <B5CoinWalletPage
-            onStartShopping={() => setCurrentTab('home')}
-            onNavigateReferral={() => setCurrentTab('referral')}
+            onStartShopping={() => navigateTo('home')}
+            onNavigateReferral={() => navigateTo('referral')}
           />
         );
-      case 'referral':
-        return <ReferralDashboard />;
       case 'account':
         return (
           <CustomerAccount
-            onNavigateOrders={() => setCurrentTab('orders')}
-            onNavigateWallet={() => setCurrentTab('wallet')}
-            onNavigateReferral={() => setCurrentTab('referral')}
+            onNavigateOrders={() => navigateTo('orders')}
+            onNavigateWallet={() => navigateTo('wallet')}
+            onNavigateReferral={() => navigateTo('referral')}
             onOpenAuth={() => setAuthModalOpen(true)}
           />
         );
       case 'partner-shops':
-        return <PartnerShopsDirectory onBackToShopping={() => setCurrentTab('home')} />;
+        return <PartnerShopsDirectory onBackToShopping={() => navigateTo('home')} />;
       case 'categories':
       case 'home':
       default:
@@ -188,8 +247,8 @@ export default function App() {
             onSelectProduct={(p) => setSelectedProduct(p)}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
-            onNavigateCategory={() => setCurrentTab('home')}
-            onNavigatePartnerShops={() => setCurrentTab('partner-shops')}
+            onNavigateCategory={() => navigateTo('home')}
+            onNavigatePartnerShops={() => navigateTo('partner-shops')}
           />
         );
     }
@@ -199,17 +258,112 @@ export default function App() {
     ? StorageService.getProducts().filter((p) => p.id !== selectedProduct.id && p.category === selectedProduct.category)
     : [];
 
+  const isCustomerView =
+    currentTab !== 'admin' &&
+    currentTab !== 'partner' &&
+    currentTab !== 'partner-orders' &&
+    currentTab !== 'partner-inventory' &&
+    currentTab !== 'admin-orders';
+
   return (
     <div className="min-h-screen flex flex-col bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
       {/* Top Header */}
       <Header
         currentTab={currentTab}
-        onNavigate={(tab) => setCurrentTab(tab)}
+        onNavigate={(tab) => navigateTo(tab)}
         onOpenAuth={() => setAuthModalOpen(true)}
       />
 
       {/* Main Dynamic View */}
       <main className="flex-1 w-full">{renderContent()}</main>
+
+      {/* Customer Footer with Direct Route Links */}
+      {isCustomerView && (
+        <footer className="mt-12 bg-white border-t border-cream-300 py-10 px-4 pb-24 md:pb-10 text-darkbrown-900">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-magizh-800 text-white flex items-center justify-center font-black">
+                  M
+                </div>
+                <span className="font-extrabold text-base tracking-tight text-magizh-900">
+                  MAGIZH SHOPPING
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Modern Indian e-commerce celebrating traditional Tamil Nadu millets, stone-ground podis, wood-pressed virgin oils, and natural soaps with 100% genuine B5 Coin rewards.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
+                Shopping Categories
+              </h4>
+              <ul className="text-xs text-gray-600 space-y-2 font-medium">
+                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Traditional Millet Products</button></li>
+                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Stone Ground Podi Varieties</button></li>
+                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Chettinad Pickles &amp; Thokku</button></li>
+                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Vedic A2 Ghee &amp; Virgin Oils</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
+                Customer Services
+              </h4>
+              <ul className="text-xs text-gray-600 space-y-2 font-medium">
+                <li><button onClick={() => navigateTo('wallet')} className="hover:text-magizh-800">B5 Coin Wallet (1 Coin = ₹1)</button></li>
+                <li><button onClick={() => navigateTo('partner-shops')} className="hover:text-magizh-800">In-Store Partner Shops</button></li>
+                <li><button onClick={() => navigateTo('orders')} className="hover:text-magizh-800">Order History &amp; Tracking</button></li>
+                <li><button onClick={() => navigateTo('account')} className="hover:text-magizh-800">Delivery Address Book</button></li>
+              </ul>
+            </div>
+
+            {/* Portal Access Links */}
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
+                Ecosystem Portals
+              </h4>
+              <ul className="text-xs space-y-2 font-semibold">
+                <li>
+                  <button
+                    onClick={() => navigateTo('partner')}
+                    className="flex items-center gap-1.5 text-blue-800 hover:text-blue-950 hover:underline"
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    <span>Partner Portal (/partner)</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => navigateTo('referral')}
+                    className="flex items-center gap-1.5 text-purple-800 hover:text-purple-950 hover:underline"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Sales Leader Portal (/referral)</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => navigateTo('admin')}
+                    className="flex items-center gap-1.5 text-red-800 hover:text-red-950 hover:underline"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Admin Console (/admin)</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto mt-8 pt-4 border-t border-cream-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
+            <p>&copy; {new Date().getFullYear()} Magizh Shopping &amp; B5 Coin Ecosystem. Pure Natural Living.</p>
+            <p className="flex items-center gap-1">
+              <span>50% B5 Coin Redemption Cap Strictly Enforced</span>
+            </p>
+          </div>
+        </footer>
+      )}
 
       {/* Product Detail Modal */}
       <ProductDetailModal
@@ -234,7 +388,7 @@ export default function App() {
       {/* Mobile Bottom Navigation */}
       <BottomNav
         currentTab={currentTab}
-        onNavigate={(tab) => setCurrentTab(tab)}
+        onNavigate={(tab) => navigateTo(tab)}
         role={currentUser.role}
         cartCount={cartCount}
         coinBalance={coinBalance}

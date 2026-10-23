@@ -13,8 +13,8 @@ import {
   Sparkles,
   ChevronRight,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { User, ReferralLevelConfig, ReferralRecord } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { User, ReferralLevelConfig, ReferralRecord } from '../../types';
 
 export const ReferralDashboard: React.FC = () => {
   const currentUser: User = StorageService.getCurrentUser();

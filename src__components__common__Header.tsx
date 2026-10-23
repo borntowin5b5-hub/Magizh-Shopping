@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Coins, User as UserIcon, Shield, Store, TrendingUp, Menu, X, Bell } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { User, UserRole } from './src__types__index';
+import { ShoppingBag, Coins, User as UserIcon, Shield, Store, TrendingUp, LogOut, ExternalLink, ChevronDown } from 'lucide-react';
+import { StorageService, subscribe } from '../../services/storage';
+import { User, UserRole } from '../../types';
 
 interface HeaderProps {
   currentTab: string;
@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
   const [cartCount, setCartCount] = useState(
     StorageService.getCart().reduce((acc, item) => acc + item.quantity, 0)
   );
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showPortalMenu, setShowPortalMenu] = useState(false);
 
   useEffect(() => {
     const unsubUser = subscribe('currentUserChanged', (user: User) => {
@@ -36,49 +36,24 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
     };
   }, [currentUser.id]);
 
-  const handleRoleSwitch = (role: UserRole) => {
-    const newUser = StorageService.switchRole(role);
-    setCurrentUser(newUser);
-    setShowRoleMenu(false);
-    if (role === 'admin') onNavigate('admin');
-    else if (role === 'partner') onNavigate('partner');
-    else if (role === 'sales') onNavigate('sales');
-    else onNavigate('home');
+  const handleLogoutToCustomer = () => {
+    const custUser = StorageService.switchRole('customer');
+    setCurrentUser(custUser);
+    setShowPortalMenu(false);
+    onNavigate('home');
   };
-
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return { label: 'Admin Hub', color: 'bg-red-800 text-white' };
-      case 'partner':
-        return { label: 'Partner Shop', color: 'bg-blue-800 text-white' };
-      case 'sales':
-        return { label: 'Sales Leader', color: 'bg-purple-800 text-white' };
-      default:
-        return { label: 'Customer', color: 'bg-magizh-800 text-white' };
-    }
-  };
-
-  const roleInfo = getRoleBadge(currentUser.role);
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-cream-300 shadow-sm">
-      {/* Top Brand & Announcement Bar */}
+      {/* Top Brand Announcement Bar */}
       <div className="bg-gradient-to-r from-magizh-900 via-magizh-800 to-darkbrown-900 text-white text-xs px-3 py-1.5 flex items-center justify-between">
         <div className="flex items-center space-x-2 truncate">
           <span className="bg-b5-600 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
             B5 Rewards
           </span>
-          <span className="truncate">Earn up to 5% B5 Coins on all Traditional Millets & Oils!</span>
+          <span className="truncate">Earn up to 5% B5 Coins on all Traditional Millets &amp; Cold-Pressed Oils!</span>
         </div>
         <div className="flex items-center space-x-3 text-[11px] shrink-0 font-medium">
-          <button
-            onClick={() => onNavigate('test-suite')}
-            className="hidden md:inline-flex items-center gap-1 text-b5-300 hover:text-white underline underline-offset-2"
-          >
-            <span>Run Test Suite (15/15)</span>
-          </button>
-          <span className="text-cream-300">|</span>
           <span className="text-cream-200">1 B5 Coin = ₹1</span>
         </div>
       </div>
@@ -108,17 +83,23 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
           </div>
         </div>
 
-        {/* B5 Coin Wallet Badge */}
+        {/* Right Navigation & Badges */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Partner Shops Directory */}
           <button
             onClick={() => onNavigate('partner-shops')}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-cream-100 hover:bg-cream-200 border border-cream-300 rounded-full text-xs font-bold text-darkbrown-800 transition-colors"
+            className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors border ${
+              currentTab === 'partner-shops'
+                ? 'bg-blue-50 border-blue-300 text-blue-900'
+                : 'bg-cream-100 hover:bg-cream-200 border-cream-300 text-darkbrown-800'
+            }`}
             title="Explore Local Partner Shops"
           >
             <Store className="w-3.5 h-3.5 text-blue-700" />
             <span>Partner Shops</span>
           </button>
 
+          {/* B5 Coin Wallet Badge */}
           <button
             onClick={() => onNavigate('wallet')}
             className="flex items-center gap-1.5 bg-gradient-to-r from-b5-50 to-amber-50 border border-b5-200 hover:border-b5-400 px-2.5 py-1.5 rounded-full shadow-sm hover:shadow transition-all group"
@@ -135,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
             </div>
           </button>
 
-          {/* Cart Icon (Customer view) */}
+          {/* Cart Icon */}
           <button
             onClick={() => onNavigate('cart')}
             className="relative p-2 text-darkbrown-800 hover:text-magizh-800 hover:bg-cream-200 rounded-full transition-colors"
@@ -149,99 +130,118 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
             )}
           </button>
 
-          {/* Role Switcher Pill / Quick Switch */}
-          <div className="relative">
+          {/* Role-Specific Account Button / Session Controls */}
+          {currentUser.role === 'customer' ? (
+            /* Ordinary Customer Account Button (No role switching dropdown) */
             <button
-              onClick={() => setShowRoleMenu(!showRoleMenu)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold shadow-sm transition-all border ${roleInfo.color}`}
+              onClick={() => onNavigate('account')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                currentTab === 'account'
+                  ? 'bg-magizh-800 text-white border-magizh-900 shadow-sm'
+                  : 'bg-white hover:bg-cream-100 text-darkbrown-900 border-cream-300'
+              }`}
+              title="My Account & Profile"
             >
-              {currentUser.role === 'admin' && <Shield className="w-3.5 h-3.5" />}
-              {currentUser.role === 'partner' && <Store className="w-3.5 h-3.5" />}
-              {currentUser.role === 'sales' && <TrendingUp className="w-3.5 h-3.5" />}
-              {currentUser.role === 'customer' && <UserIcon className="w-3.5 h-3.5" />}
+              <UserIcon className="w-3.5 h-3.5 text-magizh-700" />
               <span className="hidden sm:inline">{currentUser.name.split(' ')[0]}</span>
-              <span className="text-[10px] opacity-80">({roleInfo.label})</span>
+              <span className="sm:hidden">Account</span>
             </button>
+          ) : (
+            /* Staff / Portal Session Pill for Partner, Sales, and Admin */
+            <div className="relative">
+              <button
+                onClick={() => setShowPortalMenu(!showPortalMenu)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-sm transition-all border ${
+                  currentUser.role === 'admin'
+                    ? 'bg-red-800 text-white border-red-900'
+                    : currentUser.role === 'partner'
+                    ? 'bg-blue-800 text-white border-blue-900'
+                    : 'bg-purple-800 text-white border-purple-900'
+                }`}
+              >
+                {currentUser.role === 'admin' && <Shield className="w-3.5 h-3.5" />}
+                {currentUser.role === 'partner' && <Store className="w-3.5 h-3.5" />}
+                {currentUser.role === 'sales' && <TrendingUp className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{currentUser.name.split(' ')[0]}</span>
+                <span className="text-[10px] opacity-90 uppercase">
+                  ({currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'partner' ? 'Partner' : 'Leader'})
+                </span>
+                <ChevronDown className="w-3 h-3 opacity-70" />
+              </button>
 
-            {/* Role Dropdown Menu */}
-            {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-cream-300 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-2 border-b border-cream-200">
-                  <p className="text-xs font-bold text-darkbrown-900">{currentUser.name}</p>
-                  <p className="text-[11px] text-gray-500 font-mono">{currentUser.customerCode}</p>
-                </div>
-
-                <div className="py-1">
-                  <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    Switch Active Role
+              {/* Portal Session Dropdown */}
+              {showPortalMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-cream-300 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3.5 py-2 border-b border-cream-200">
+                    <p className="text-xs font-extrabold text-darkbrown-900">{currentUser.name}</p>
+                    <p className="text-[11px] text-gray-500 font-mono">{currentUser.customerCode || currentUser.email}</p>
                   </div>
-                  <button
-                    onClick={() => handleRoleSwitch('customer')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-cream-100 ${
-                      currentUser.role === 'customer' ? 'text-magizh-800 font-bold bg-magizh-50' : 'text-gray-700'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4 text-magizh-700" />
-                      1. Customer App
-                    </span>
-                    {currentUser.role === 'customer' && <span className="text-[10px] text-magizh-700 font-bold">Active</span>}
-                  </button>
 
-                  <button
-                    onClick={() => handleRoleSwitch('partner')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-cream-100 ${
-                      currentUser.role === 'partner' ? 'text-blue-800 font-bold bg-blue-50' : 'text-gray-700'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Store className="w-4 h-4 text-blue-700" />
-                      2. Partner Shop
-                    </span>
-                    {currentUser.role === 'partner' && <span className="text-[10px] text-blue-700 font-bold">Active</span>}
-                  </button>
+                  <div className="py-1">
+                    {currentUser.role === 'partner' && (
+                      <button
+                        onClick={() => {
+                          setShowPortalMenu(false);
+                          onNavigate('partner');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2 hover:bg-blue-50 text-blue-900 font-bold"
+                      >
+                        <Store className="w-4 h-4 text-blue-700" />
+                        <span>Partner Dashboard (/partner)</span>
+                      </button>
+                    )}
 
-                  <button
-                    onClick={() => handleRoleSwitch('sales')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-cream-100 ${
-                      currentUser.role === 'sales' ? 'text-purple-800 font-bold bg-purple-50' : 'text-gray-700'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-purple-700" />
-                      3. Sales / Referral Leader
-                    </span>
-                    {currentUser.role === 'sales' && <span className="text-[10px] text-purple-700 font-bold">Active</span>}
-                  </button>
+                    {currentUser.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setShowPortalMenu(false);
+                          onNavigate('admin');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-red-900 font-bold"
+                      >
+                        <Shield className="w-4 h-4 text-red-700" />
+                        <span>Admin Console (/admin)</span>
+                      </button>
+                    )}
 
-                  <button
-                    onClick={() => handleRoleSwitch('admin')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-cream-100 ${
-                      currentUser.role === 'admin' ? 'text-red-800 font-bold bg-red-50' : 'text-gray-700'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-red-700" />
-                      4. Admin Panel
-                    </span>
-                    {currentUser.role === 'admin' && <span className="text-[10px] text-red-700 font-bold">Active</span>}
-                  </button>
+                    {currentUser.role === 'sales' && (
+                      <button
+                        onClick={() => {
+                          setShowPortalMenu(false);
+                          onNavigate('referral');
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2 hover:bg-purple-50 text-purple-900 font-bold"
+                      >
+                        <TrendingUp className="w-4 h-4 text-purple-700" />
+                        <span>Sales Dashboard (/referral)</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setShowPortalMenu(false);
+                        onNavigate('home');
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2 hover:bg-cream-100 text-darkbrown-800 font-medium"
+                    >
+                      <ExternalLink className="w-4 h-4 text-gray-500" />
+                      <span>View Storefront (/)</span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-cream-200 pt-1 mt-1">
+                    <button
+                      onClick={handleLogoutToCustomer}
+                      className="w-full text-left px-3.5 py-2 text-xs text-red-700 font-bold hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Log Out to Customer View</span>
+                    </button>
+                  </div>
                 </div>
-
-                <div className="border-t border-cream-200 pt-1 mt-1">
-                  <button
-                    onClick={() => {
-                      setShowRoleMenu(false);
-                      onOpenAuth();
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-b5-700 font-semibold hover:bg-cream-100 flex items-center gap-2"
-                  >
-                    Manage Profile & Demo Login
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>

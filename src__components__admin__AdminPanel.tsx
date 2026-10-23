@@ -31,14 +31,14 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
+import { StorageService, subscribe } from '../../services/storage';
 import {
   calculateMaxRedemption,
   validateCoinRedemption,
   processCoinDeduction,
   processOrderCancellationReversal,
   creditOrderCompletionReward,
-} from './src__services__rewardsEngine';
+} from '../../services/rewardsEngine';
 import {
   User,
   Product,
@@ -55,7 +55,7 @@ import {
   ReferralLevelConfig,
   AuditLog,
   PartnerLocalTransaction,
-} from './src__types__index';
+} from '../../types';
 
 export const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<

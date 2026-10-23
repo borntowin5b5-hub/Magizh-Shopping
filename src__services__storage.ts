@@ -20,8 +20,8 @@ import {
   Coupon,
   AuditLog,
   UserRole,
-} from './src__types__index';
-import { DEFAULT_COIN_RULES } from './src__services__rewardsEngine';
+} from '../types';
+import { DEFAULT_COIN_RULES } from './rewardsEngine';
 
 // LocalStorage Keys (Local Fallback & Offline Mirror)
 const KEYS = {

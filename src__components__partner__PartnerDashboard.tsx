@@ -21,8 +21,8 @@ import {
   QrCode,
   Sparkles,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { PartnerShop, Order, Product, User, PartnerLocalTransaction } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { PartnerShop, Order, Product, User, PartnerLocalTransaction } from '../../types';
 
 export const PartnerDashboard: React.FC = () => {
   const currentUser: User = StorageService.getCurrentUser();

@@ -12,8 +12,8 @@ import {
   Edit2,
   Share2,
 } from 'lucide-react';
-import { StorageService } from './src__services__storage';
-import { User, Address } from './src__types__index';
+import { StorageService } from '../../services/storage';
+import { User, Address } from '../../types';
 
 interface CustomerAccountProps {
   onNavigateOrders: () => void;

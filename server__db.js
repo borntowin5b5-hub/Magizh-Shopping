@@ -3,12 +3,12 @@ import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { hashPassword, hashOtp, verifyOtp } from './server__security.js';
+import { hashPassword, hashOtp, verifyOtp } from './security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(__dirname, 'server__data__magizh.sqlite');
+const DB_FILE = path.join(DATA_DIR, 'magizh.sqlite');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -615,6 +615,13 @@ export const dbService = {
   findUserByEmail(email) {
     if (!email) return null;
     const res = db.exec("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", [email.trim()]);
+    if (!res[0] || !res[0].values[0]) return null;
+    return mapUserRow(res[0].columns, res[0].values[0]);
+  },
+
+  findUserById(id) {
+    if (!id) return null;
+    const res = db.exec("SELECT * FROM users WHERE id = ?", [id]);
     if (!res[0] || !res[0].values[0]) return null;
     return mapUserRow(res[0].columns, res[0].values[0]);
   },

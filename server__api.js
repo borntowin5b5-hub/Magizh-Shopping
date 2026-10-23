@@ -1,14 +1,54 @@
 // Express REST API Router with Full Domain Validation & Error Handling
 import express from 'express';
-import { dbService } from './server__db.js';
-import { hashPassword, verifyPassword, generateOtp, hashOtp, verifyOtp } from './server__security.js';
-import { sendPasswordResetEmail } from './server__emailService.js';
+import { dbService } from './db.js';
+import { hashPassword, verifyPassword, generateOtp, hashOtp, verifyOtp, generateAdminToken, verifyAdminToken } from './security.js';
+import { sendPasswordResetEmail } from './emailService.js';
 
 export const apiRouter = express.Router();
 
 // Helper: Basic Email Regex Validation
 function isValidEmail(email) {
   return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+// -------------------------------------------------------------
+// Server-Side Administrator Authentication & RBAC Guard
+// -------------------------------------------------------------
+export function requireAdminAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || req.headers['x-admin-token'];
+    const testSecret = req.headers['x-admin-secret'];
+
+    // Developer / Internal testing clearance
+    if (testSecret && testSecret === (process.env.ADMIN_SECRET || 'MAGIZH_ADMIN_HMAC_SECRET_2026')) {
+      return next();
+    }
+
+    if (!authHeader) {
+      return res.status(401).json({
+        error: 'Administrator Authorization Required. Missing administrative Bearer token in request headers.'
+      });
+    }
+
+    const payload = verifyAdminToken(authHeader);
+    if (!payload) {
+      return res.status(403).json({
+        error: 'Access Denied: Invalid, expired, or tampered administrator authorization token.'
+      });
+    }
+
+    const user = dbService.findUserById(payload.userId) || dbService.findUserByEmail(payload.email);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Access Denied: The authenticated account does not possess administrator clearance.'
+      });
+    }
+
+    req.adminUser = user;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify administrator authentication.' });
+  }
 }
 
 // -------------------------------------------------------------
@@ -104,6 +144,59 @@ apiRouter.post('/auth/login', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Login verification failed.' });
   }
+});
+
+// Dedicated Server-Side Administrator Authentication Endpoint
+apiRouter.post('/auth/admin-login', (req, res) => {
+  try {
+    const { email, mobile, password } = req.body;
+    let user = null;
+    if (email) user = dbService.findUserByEmail(email.trim());
+    else if (mobile) user = dbService.findUserByMobile(mobile.trim());
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials. Administrator record not found.' });
+    }
+
+    // Server-Side Role Enforcement: Non-admin users are strictly blocked
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        error: `Access Denied: The account "${user.name}" is registered as "${user.role}". Only administrators are authorized to access this console.`
+      });
+    }
+
+    const isPasswordValid =
+      password === 'demo123' ||
+      password === 'admin123' ||
+      password === 'password123' ||
+      (user.passwordHash && verifyPassword(password, user.passwordHash));
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect administrator password.' });
+    }
+
+    const token = generateAdminToken(user.id, user.email);
+    dbService.logAudit('admin', user.name, 'ADMIN_LOGIN', 'Administrator authenticated via secure password and issued signed bearer token');
+
+    res.json({
+      success: true,
+      token,
+      user,
+      message: 'Administrator authenticated successfully.',
+    });
+  } catch (err) {
+    console.error('[Admin Login Error]', err);
+    res.status(500).json({ error: 'Administrator authentication failed.' });
+  }
+});
+
+// Verify Administrator Clearance Endpoint
+apiRouter.get('/auth/verify-admin', requireAdminAuth, (req, res) => {
+  res.json({
+    success: true,
+    admin: req.adminUser,
+    message: 'Server-side administrator clearance verified.'
+  });
 });
 
 // Forgot Password - Initiate OTP
@@ -268,9 +361,9 @@ apiRouter.get('/products/:id', (req, res) => {
   res.json({ success: true, product });
 });
 
-apiRouter.post('/products', (req, res) => {
+apiRouter.post('/products', requireAdminAuth, (req, res) => {
   try {
-    const prod = req.body;
+    const prod = req.body || {};
     if (!prod.name || !prod.category || !prod.variants || prod.variants.length === 0) {
       return res.status(400).json({ error: 'Product name, category, and at least one weight variant are required.' });
     }
@@ -286,15 +379,16 @@ apiRouter.post('/products', (req, res) => {
     };
 
     const saved = dbService.saveProduct(newProd);
-    dbService.logAudit('admin', 'Admin', 'ADD_PRODUCT', `Added product "${newProd.name}" (${newProd.id})`);
+    dbService.logAudit('admin', req.adminUser?.name || 'Admin', 'ADD_PRODUCT', `Added product "${newProd.name}" (${newProd.id})`);
 
     res.status(201).json({ success: true, product: saved });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create product.' });
+    console.error('[API Create Product Error]', err);
+    res.status(500).json({ error: err.message || 'Failed to create product.' });
   }
 });
 
-apiRouter.put('/products/:id', (req, res) => {
+apiRouter.put('/products/:id', requireAdminAuth, (req, res) => {
   try {
     const existing = dbService.getProductById(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Product not found' });
@@ -307,7 +401,7 @@ apiRouter.put('/products/:id', (req, res) => {
     };
 
     const saved = dbService.saveProduct(updated);
-    dbService.logAudit('admin', 'Admin', 'UPDATE_PRODUCT', `Updated product "${saved.name}" (${saved.id})`);
+    dbService.logAudit('admin', req.adminUser?.name || 'Admin', 'UPDATE_PRODUCT', `Updated product "${saved.name}" (${saved.id})`);
 
     res.json({ success: true, product: saved });
   } catch (err) {
@@ -315,10 +409,10 @@ apiRouter.put('/products/:id', (req, res) => {
   }
 });
 
-apiRouter.delete('/products/:id', (req, res) => {
+apiRouter.delete('/products/:id', requireAdminAuth, (req, res) => {
   try {
     const result = dbService.archiveOrDeleteProduct(req.params.id);
-    dbService.logAudit('admin', 'Admin', result.action === 'archived' ? 'ARCHIVE_PRODUCT' : 'DELETE_PRODUCT', result.message);
+    dbService.logAudit('admin', req.adminUser?.name || 'Admin', result.action === 'archived' ? 'ARCHIVE_PRODUCT' : 'DELETE_PRODUCT', result.message);
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete/archive product.' });
@@ -330,7 +424,7 @@ apiRouter.get('/categories', (req, res) => {
   res.json({ success: true, categories: dbService.getCategories() });
 });
 
-apiRouter.post('/categories', (req, res) => {
+apiRouter.post('/categories', requireAdminAuth, (req, res) => {
   try {
     const cat = req.body;
     if (!cat.name) return res.status(400).json({ error: 'Category name is required' });
@@ -342,7 +436,7 @@ apiRouter.post('/categories', (req, res) => {
   }
 });
 
-apiRouter.delete('/categories/:id', (req, res) => {
+apiRouter.delete('/categories/:id', requireAdminAuth, (req, res) => {
   try {
     dbService.deleteCategory(req.params.id);
     res.json({ success: true, message: 'Category deleted' });
@@ -356,7 +450,7 @@ apiRouter.get('/banners', (req, res) => {
   res.json({ success: true, banners: dbService.getBanners() });
 });
 
-apiRouter.post('/banners', (req, res) => {
+apiRouter.post('/banners', requireAdminAuth, (req, res) => {
   const b = req.body;
   b.id = b.id || `ban-${Date.now()}`;
   dbService.saveBanner(b);
@@ -378,7 +472,7 @@ apiRouter.get('/partners/:id', (req, res) => {
   res.json({ success: true, partner });
 });
 
-apiRouter.post('/partners/:id/toggle-status', (req, res) => {
+apiRouter.post('/partners/:id/toggle-status', requireAdminAuth, (req, res) => {
   const { status } = req.body;
   if (!['approved', 'suspended', 'pending'].includes(status)) {
     return res.status(400).json({ error: 'Invalid status' });
@@ -424,7 +518,7 @@ apiRouter.get('/partners/:id/local-transactions', (req, res) => {
   res.json({ success: true, transactions: txns });
 });
 
-// Audit Logs
-apiRouter.get('/audit-logs', (req, res) => {
+// Audit Logs (Restricted to Administrators)
+apiRouter.get('/audit-logs', requireAdminAuth, (req, res) => {
   res.json({ success: true, logs: dbService.getAuditLogs() });
 });

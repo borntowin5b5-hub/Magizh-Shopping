@@ -14,8 +14,8 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { StorageService } from './src__services__storage';
-import { User, UserRole } from './src__types__index';
+import { StorageService } from '../../services/storage';
+import { User, UserRole } from '../../types';
 
 interface AuthModalProps {
   isOpen: boolean;

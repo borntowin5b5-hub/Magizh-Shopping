@@ -63,3 +63,46 @@ export function verifyOtp(candidateOtp, storedOtpHash, salt = 'MAGIZH_OTP_SECRET
     return false;
   }
 }
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'MAGIZH_ADMIN_HMAC_SECRET_2026';
+
+/**
+ * Generates an HMAC-signed Bearer token for authenticated administrators.
+ */
+export function generateAdminToken(userId, email) {
+  const payload = `${userId}:${email}:${Date.now()}`;
+  const signature = crypto.createHmac('sha256', ADMIN_SECRET).update(payload).digest('hex');
+  return Buffer.from(`${payload}:${signature}`).toString('base64');
+}
+
+/**
+ * Validates an admin Bearer token using timing-safe signature comparison and expiration.
+ */
+export function verifyAdminToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const raw = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
+    const decoded = Buffer.from(raw, 'base64').toString('utf8');
+    const parts = decoded.split(':');
+    if (parts.length !== 4) return null;
+    const [userId, email, timestampStr, signature] = parts;
+    const payload = `${userId}:${email}:${timestampStr}`;
+    const expectedSignature = crypto.createHmac('sha256', ADMIN_SECRET).update(payload).digest('hex');
+
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expBuf = Buffer.from(expectedSignature, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return null;
+    }
+
+    // Valid for 24 hours
+    const timestamp = parseInt(timestampStr, 10);
+    if (Date.now() - timestamp > 24 * 60 * 60 * 1000) {
+      return null;
+    }
+
+    return { userId, email, timestamp };
+  } catch (err) {
+    return null;
+  }
+}

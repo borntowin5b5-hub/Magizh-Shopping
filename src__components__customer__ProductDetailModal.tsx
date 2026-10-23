@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Star, ShieldCheck, MapPin, Leaf, Check, Plus, Minus, ShoppingBag, Coins, Sparkles, Heart } from 'lucide-react';
-import { Product, WeightVariant } from './src__types__index';
+import { Product, WeightVariant } from '../../types';
 
 interface ProductDetailModalProps {
   product: Product | null;

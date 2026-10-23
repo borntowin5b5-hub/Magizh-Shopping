@@ -1,5 +1,5 @@
 // Core B5 Coin Rewards Engine & Verification Rules
-import { B5CoinAccount, B5Transaction, CoinRuleConfig, Order, OrderStatus } from './src__types__index';
+import { B5CoinAccount, B5Transaction, CoinRuleConfig, Order, OrderStatus } from '../types';
 
 export const DEFAULT_COIN_RULES: CoinRuleConfig = {
   coinToInrRate: 1, // 1 B5 Coin = ₹1

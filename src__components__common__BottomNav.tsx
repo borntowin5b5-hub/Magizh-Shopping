@@ -1,6 +1,6 @@
 import React from 'react';
 import { Home, Grid, ShoppingBag, Coins, User as UserIcon, Store, BarChart2, Shield, Share2, PackageCheck } from 'lucide-react';
-import { UserRole } from './src__types__index';
+import { UserRole } from '../../types';
 
 interface BottomNavProps {
   currentTab: string;

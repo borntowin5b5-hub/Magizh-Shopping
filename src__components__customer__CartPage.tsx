@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Tag, Check, Sparkles, AlertCircle } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { CartItem, Coupon } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { CartItem, Coupon } from '../../types';
 
 interface CartPageProps {
   onProceedToCheckout: (coupon?: Coupon) => void;

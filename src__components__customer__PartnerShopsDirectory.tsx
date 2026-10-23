@@ -13,8 +13,8 @@ import {
   Phone,
   Sparkles,
 } from 'lucide-react';
-import { StorageService, subscribe } from './src__services__storage';
-import { PartnerShop, PartnerLocalTransaction, User } from './src__types__index';
+import { StorageService, subscribe } from '../../services/storage';
+import { PartnerShop, PartnerLocalTransaction, User } from '../../types';
 
 interface PartnerShopsDirectoryProps {
   onBackToShopping: () => void;
