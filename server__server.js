@@ -39,9 +39,9 @@ app.use('/api', apiRouter);
 // Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(DIST_DIR));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(DIST_DIR, 'index.html'));
-  });
+  app.get('/{*path}', (req, res) => {
+  res.sendFile(path.join(DIST_DIR, 'index.html'));
+});
 }
 
 // Start Server
